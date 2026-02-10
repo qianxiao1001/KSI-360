@@ -1,0 +1,73 @@
+
+:root {
+  --ksi-yellow: #FFDC00;
+  --ksi-black: #1A1A1A;
+}
+
+.bg-ksi-yellow {
+  background-color: var(--ksi-yellow);
+}
+
+.text-ksi-yellow {
+  color: var(--ksi-yellow);
+}
+
+.btn-ksi-primary {
+  background-color: var(--ksi-black);
+  color: white;
+  transition: all 0.2s ease;
+}
+
+.btn-ksi-primary:hover {
+  background-color: #333333;
+  transform: translateY(-1px);
+}
+
+.btn-ksi-primary:active {
+  transform: translateY(0);
+}
+
+.ksi-card {
+  background: white;
+  border-radius: 2rem;
+}
+
+.shadow-glow {
+  box-shadow: 0 0 50px rgba(0, 0, 0, 0.08), 0 20px 40px -20px rgba(0, 0, 0, 0.15);
+}
+
+.ksi-input {
+  border-radius: 0.75rem;
+  border: 1px solid #E5E7EB;
+  background-color: #F9FAFB;
+}
+
+.ksi-input:focus {
+  border-color: var(--ksi-black);
+  ring: 2px solid var(--ksi-black);
+  outline: none;
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Custom scrollbar for better aesthetics */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 10px;
+}
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #999;
+}

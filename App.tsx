@@ -520,8 +520,9 @@ const AdminDashboard = () => {
 
   const handleTestDB = async () => {
     try {
+      const randomId = Math.random().toString(36).substring(2, 8);
       const sample = {
-        evaluator: 'debug_tester',
+        evaluator: `debug_tester_${randomId}`,
         target: selectedTarget || 'debug_target',
         pos_scores: POSITIVE_QUESTIONS.reduce((acc, q) => ({ ...acc, [q]: 5 }), {} as any),
         neg_scores: NEGATIVE_QUESTIONS.reduce((acc, q) => ({ ...acc, [q]: 0 }), {} as any),

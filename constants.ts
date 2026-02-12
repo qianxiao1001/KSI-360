@@ -78,5 +78,32 @@ export const NEGATIVE_METRICS: MetricConfig[] = [
 export const POSITIVE_QUESTIONS = POSITIVE_METRICS.map(m => m.title);
 export const NEGATIVE_QUESTIONS = NEGATIVE_METRICS.map(m => m.title);
 
-export const ADMIN_PASSWORD = "KSI2026";
+export const ADMIN_PASSWORD = "KSI!";
 export const STORAGE_KEY = "ksi_evaluation_data_v2";
+
+export interface UserAccount {
+  name: string;
+  username: string;
+  password: string;
+}
+
+export const USER_ACCOUNTS: UserAccount[] = [
+  { name: "董博", username: "dongbo", password: "123456" },
+  { name: "史佳慧", username: "shijiahui", password: "123456" },
+  { name: "李倩", username: "liqian", password: "123456" },
+  { name: "郭建飞", username: "guojianfei", password: "123456" },
+  { name: "钱啸", username: "qianxiao", password: "123456" },
+  { name: "王泽群", username: "wangzequn", password: "123456" },
+  { name: "王青青", username: "wangqingqing", password: "123456" },
+  { name: "赵璕", username: "zhaoxun", password: "123456" },
+  { name: "吴敏", username: "wumin", password: "123456" },
+  { name: "陈芳", username: "chenfang", password: "123456" },
+  { name: "征胜男", username: "zhengshengnan", password: "123456" },
+  { name: "蒋佩玉", username: "jiangpeiyu", password: "123456" },
+  { name: "李双江", username: "lishuangjiang", password: "123456" },
+  { name: "杨迪", username: "yangdi", password: "123456" },
+  { name: "满懿", username: "manyi", password: "123456" },
+  { name: "徐美玲", username: "xumeiling", password: "123456" },
+  { name: "李洁", username: "lijie", password: "123456" },
+  { name: "乔瑞丰", username: "qiaoruifeng", password: "123456" }
+];

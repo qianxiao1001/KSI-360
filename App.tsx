@@ -20,7 +20,8 @@ import {
   NEGATIVE_QUESTIONS, 
   POSITIVE_METRICS, 
   NEGATIVE_METRICS, 
-  ADMIN_PASSWORD 
+  ADMIN_PASSWORD,
+  USER_ACCOUNTS
 } from './constants';
 import { saveEvaluation, getEvaluationStats, downloadCSV, clearAllEvaluations, getEvaluations } from './services/cloudStorageService';
 import { RadarView } from './components/RadarChart';
@@ -643,10 +644,29 @@ export default function App() {
   const [view, setView] = useState<'login' | 'eval' | 'admin'>('login');
   const [currentUser, setCurrentUser] = useState<string>('');
   const [password, setPassword] = useState('');
+  const [username, setUsername] = useState('');
+  const [loginPassword, setLoginPassword] = useState('');
+  const [hasSubmitted, setHasSubmitted] = useState(false);
 
-  const handleStart = () => {
-    if (!currentUser) return;
-    setView('eval');
+  const handleStart = async () => {
+    const user = USER_ACCOUNTS.find(u => u.username === username && u.password === loginPassword);
+    if (user) {
+      const allEvaluations = await getEvaluations();
+      const userEvaluations = allEvaluations.filter((e: any) => e.evaluator === user.name);
+      const targets = SUPERVISORS.filter(s => s !== user.name);
+      
+      if (userEvaluations.length >= targets.length) {
+        setHasSubmitted(true);
+        alert("已完成提交\n\n您已经完成了所有评价，感谢您的参与！");
+        return;
+      }
+      
+      setCurrentUser(user.name);
+      setView('eval');
+      alert("温馨提示\n\n本次评价结果仅供公司CEO参考，不对工作业绩和绩效结果产生影响，数据不做公开和使用。");
+    } else {
+      alert("账号或密码错误");
+    }
   };
 
   const handleAdminLogin = (e: React.FormEvent) => {
@@ -679,25 +699,26 @@ export default function App() {
             <div className="space-y-8">
                <div className="space-y-3">
                  <label className="block text-xs font-black text-slate-500 uppercase tracking-wider ml-1">
-                   我是评价人 · SELECT EVALUATOR
+                   我是评价人 · USER LOGIN
                  </label>
                  <div className="flex flex-col gap-4">
-                   <div className="relative">
-                     <select 
-                       className="w-full p-4 ksi-input appearance-none text-slate-800 font-bold focus:ring-2 focus:ring-ksi-black transition-all bg-white"
-                       value={currentUser}
-                       onChange={(e) => setCurrentUser(e.target.value)}
-                     >
-                       <option value="">请选择你的名字</option>
-                       {SUPERVISORS.map(s => <option key={s} value={s}>{s}</option>)}
-                     </select>
-                     <div className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none text-slate-400">
-                       <ArrowRight className="w-5 h-5 rotate-90" />
-                     </div>
-                   </div>
+                   <input 
+                     type="text" 
+                     placeholder="请输入账号"
+                     className="w-full p-4 ksi-input appearance-none text-slate-800 font-bold focus:ring-2 focus:ring-ksi-black transition-all bg-white"
+                     value={username}
+                     onChange={(e) => setUsername(e.target.value)}
+                   />
+                   <input 
+                     type="password" 
+                     placeholder="请输入密码"
+                     className="w-full p-4 ksi-input appearance-none text-slate-800 font-bold focus:ring-2 focus:ring-ksi-black transition-all bg-white"
+                     value={loginPassword}
+                     onChange={(e) => setLoginPassword(e.target.value)}
+                   />
                    <button 
                      onClick={handleStart}
-                     disabled={!currentUser}
+                     disabled={!username || !loginPassword}
                      className="w-full py-4 btn-ksi-primary rounded-xl font-black text-lg shadow-lg disabled:bg-slate-200 disabled:text-slate-400 disabled:cursor-not-allowed"
                    >
                      进入评价系统

@@ -27,6 +27,26 @@
   transform: translateY(0);
 }
 
+/* Fix button selected state text color */
+button:active, button:focus {
+  color: white !important;
+}
+
+button.bg-ksi-black:active, button.bg-ksi-black:focus {
+  color: white !important;
+}
+
+/* Selected button style with gray background */
+button.bg-ksi-black {
+  background-color: #e5e7eb !important;
+  color: #1a1a1a !important;
+  font-weight: 600 !important;
+}
+
+button.bg-ksi-black:hover {
+  background-color: #d1d5db !important;
+}
+
 .ksi-card {
   background: white;
   border-radius: 2rem;

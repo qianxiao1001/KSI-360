@@ -77,6 +77,21 @@ button.bg-ksi-black:hover {
   to { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes stickyPulse {
+  0%, 100% { { transform: scale(1); box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1); }
+  50% { { transform: scale(1.01); box-shadow: 0 8px 12px -2px rgba(0, 0, 0, 0.15); }
+}
+
+.sticky-header {
+  animation: stickyPulse 3s ease-in-out infinite;
+}
+
+.sticky-header:hover {
+  animation-play-state: paused;
+  transform: scale(1.02);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+}
+
 /* Custom scrollbar for better aesthetics */
 .custom-scrollbar::-webkit-scrollbar {
   width: 6px;

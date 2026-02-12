@@ -284,7 +284,7 @@ const EvaluationMode = ({
   return (
     <div className="max-w-4xl mx-auto space-y-4 animate-fade-in pb-24">
       <div className="sticky top-14 z-20 bg-slate-50/95 backdrop-blur-sm py-2 md:static md:bg-transparent md:py-0 md:mb-6 transition-all">
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-3 md:p-6 mx-0">
+        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-3 md:p-6 mx-0 sticky-header">
           <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
                  <div className="text-[10px] text-slate-500 font-medium mb-0.5">评价人</div>
@@ -765,14 +765,14 @@ export default function App() {
 
       {view === 'admin' && (
         <div className="relative min-h-screen bg-slate-100">
-           <div className="bg-ksi-black text-white shadow-md sticky top-0 z-30">
+           <div className="bg-white shadow-md sticky top-0 z-30">
               <div className="max-w-7xl mx-auto px-4 md:px-8 h-16 flex items-center justify-between">
-                <div className="flex items-center gap-2 font-black text-lg italic">
-                  KSI <span className="font-normal not-italic text-sm text-slate-400">MANAGEMENT PORTAL</span>
+                <div className="flex items-center gap-2">
+                  <img src="https://encrypted-tbn0.gstatic.com/images?q=tbn:ANd9GcQt0v71RoqPf_-xPhJBYxxvJ-dWSbLhjzM7Mg&s" alt="氪星创服" className="h-8" />
                 </div>
                 <button 
                   onClick={() => setView('login')}
-                  className="flex items-center gap-2 text-slate-300 hover:text-white font-medium transition-colors py-1 px-3 rounded hover:bg-white/10"
+                  className="flex items-center gap-2 text-slate-800 hover:text-black font-medium transition-colors py-1 px-3 rounded hover:bg-slate-100"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   退出管理

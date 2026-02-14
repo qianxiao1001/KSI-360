@@ -73,17 +73,17 @@ export const getEvaluationStats = async (targetName: string): Promise<Aggregated
   POSITIVE_QUESTIONS.forEach(q => posSums[q] = 0);
   NEGATIVE_QUESTIONS.forEach(q => negSums[q] = 0);
   
-  const commentsStart: string[] = [];
-  const commentsStop: string[] = [];
-  const commentsContinue: string[] = [];
+  const commentsStart: { text: string; evaluator: string }[] = [];
+  const commentsStop: { text: string; evaluator: string }[] = [];
+  const commentsContinue: { text: string; evaluator: string }[] = [];
   
   targetRecords.forEach((record: any) => {
     POSITIVE_QUESTIONS.forEach(q => posSums[q] += (record.pos_scores?.[q] || 0));
     NEGATIVE_QUESTIONS.forEach(q => negSums[q] += (record.neg_scores?.[q] || 0));
     
-    if (record.text_start) commentsStart.push(record.text_start);
-    if (record.text_stop) commentsStop.push(record.text_stop);
-    if (record.text_continue) commentsContinue.push(record.text_continue);
+    if (record.text_start) commentsStart.push({ text: record.text_start, evaluator: record.evaluator });
+    if (record.text_stop) commentsStop.push({ text: record.text_stop, evaluator: record.evaluator });
+    if (record.text_continue) commentsContinue.push({ text: record.text_continue, evaluator: record.evaluator });
   });
   
   const avgPos: Record<string, number> = {};

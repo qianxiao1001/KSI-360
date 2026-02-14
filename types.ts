@@ -12,12 +12,17 @@ export interface EvaluationRecord {
 
 export type ScoreMap = Record<string, number>;
 
+export interface CommentWithEvaluator {
+  text: string;
+  evaluator: string;
+}
+
 export interface AggregatedData {
   target: string;
   avgPos: ScoreMap;
   avgNeg: ScoreMap;
-  commentsStart: string[];
-  commentsStop: string[];
-  commentsContinue: string[];
+  commentsStart: CommentWithEvaluator[];
+  commentsStop: CommentWithEvaluator[];
+  commentsContinue: CommentWithEvaluator[];
   count: number;
 }

@@ -132,8 +132,11 @@ const PrintableReport: React.FC<{ target: string }> = ({ target }) => {
              <PlayCircle className="w-6 h-6" /> Start (建议开始做)
            </h3>
            <ul className="space-y-3">
-              {stats.commentsStart.map((c, i) => (
-                <li key={i} className="text-slate-800 bg-white p-3 rounded shadow-sm text-lg">{c}</li>
+              {stats.commentsStart.map((c: any, i) => (
+                <li key={i} className="text-slate-800 bg-white p-3 rounded shadow-sm text-lg">
+                  <div className="text-sm text-slate-400 mb-1">评价人：{c.evaluator}</div>
+                  <div>{typeof c === 'string' ? c : c.text}</div>
+                </li>
               ))}
               {stats.commentsStart.length === 0 && <p className="text-slate-400 italic">暂无建议</p>}
            </ul>
@@ -144,8 +147,11 @@ const PrintableReport: React.FC<{ target: string }> = ({ target }) => {
              <StopCircle className="w-6 h-6" /> Stop (建议停止做)
            </h3>
            <ul className="space-y-3">
-              {stats.commentsStop.map((c, i) => (
-                <li key={i} className="text-slate-800 bg-white p-3 rounded shadow-sm text-lg">{c}</li>
+              {stats.commentsStop.map((c: any, i) => (
+                <li key={i} className="text-slate-800 bg-white p-3 rounded shadow-sm text-lg">
+                  <div className="text-sm text-slate-400 mb-1">评价人：{c.evaluator}</div>
+                  <div>{typeof c === 'string' ? c : c.text}</div>
+                </li>
               ))}
                {stats.commentsStop.length === 0 && <p className="text-slate-400 italic">暂无建议</p>}
            </ul>
@@ -156,8 +162,11 @@ const PrintableReport: React.FC<{ target: string }> = ({ target }) => {
              <FastForward className="w-6 h-6" /> Continue (建议坚持做)
            </h3>
            <ul className="space-y-3">
-              {stats.commentsContinue.map((c, i) => (
-                <li key={i} className="text-slate-800 bg-white p-3 rounded shadow-sm text-lg">{c}</li>
+              {stats.commentsContinue.map((c: any, i) => (
+                <li key={i} className="text-slate-800 bg-white p-3 rounded shadow-sm text-lg">
+                  <div className="text-sm text-slate-400 mb-1">评价人：{c.evaluator}</div>
+                  <div>{typeof c === 'string' ? c : c.text}</div>
+                </li>
               ))}
                {stats.commentsContinue.length === 0 && <p className="text-slate-400 italic">暂无建议</p>}
            </ul>
@@ -691,8 +700,14 @@ const AdminDashboard = () => {
                     </div>
                     <div className="p-4 max-h-[300px] overflow-y-auto">
                       <ul className="space-y-3">
-                        {section.list.map((c, i) => (
-                          <li key={i} className="text-sm text-slate-700 bg-slate-50 p-2 rounded border border-slate-100">{c}</li>
+                        {section.list.map((c: any, i) => (
+                          <li 
+                            key={i} 
+                            className="text-sm text-slate-700 bg-slate-50 p-2 rounded border border-slate-100 cursor-pointer hover:shadow-md transition-shadow"
+                            title={`评价人：${c.evaluator || '未知'}`}
+                          >
+                            {typeof c === 'string' ? c : c.text}
+                          </li>
                         ))}
                         {section.list.length === 0 && <div className="text-slate-400 text-sm italic">暂无建议</div>}
                       </ul>

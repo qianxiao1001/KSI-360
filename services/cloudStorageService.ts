@@ -45,22 +45,34 @@ export const clearAllEvaluations = async (): Promise<number> => {
   await loginAnonymous();
   
   const collection = db.collection(COLLECTION_NAME);
+  console.log('[clearAllEvaluations] 开始获取所有记录...');
+  
   const res = await collection.get();
+  console.log('[clearAllEvaluations] 查询结果:', res);
   
   let deleteCount = 0;
   
   if (res.data) {
+    console.log(`[clearAllEvaluations] 共找到 ${res.data.length} 条记录，开始删除...`);
+    
     for (const doc of res.data) {
       try {
-        await collection.doc(doc._id).remove();
+        console.log(`[clearAllEvaluations] 正在删除记录:`, doc._id);
+        const deleteRes = await collection.doc(doc._id).remove();
+        console.log(`[clearAllEvaluations] 删除结果:`, deleteRes);
         deleteCount++;
-        console.log(`已删除记录 ${deleteCount}:`, doc._id);
+        console.log(`[clearAllEvaluations] 已删除 ${deleteCount}/${res.data.length} 条记录`);
       } catch (err) {
-        console.error('删除记录失败:', doc._id, err);
+        console.error('[clearAllEvaluations] 删除记录失败:', doc._id, err);
+        alert('删除失败！错误信息已输出到控制台。可能是数据库权限不足，请在腾讯云控制台配置数据库权限。');
+        throw err;
       }
     }
+  } else {
+    console.log('[clearAllEvaluations] 没有找到需要删除的记录');
   }
   
+  console.log(`[clearAllEvaluations] 删除完成，共删除 ${deleteCount} 条记录`);
   return deleteCount;
 };
 

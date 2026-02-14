@@ -238,6 +238,8 @@ const EvaluationMode = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    e.stopPropagation();
+    
     if (!currentTarget) return;
     
     const defaultPosScores: Record<string, number> = {};
@@ -250,34 +252,40 @@ const EvaluationMode = ({
     const hasNoText = !textStart && !textStop && !textContinue;
     
     if (isDefaultPosScores && isDefaultNegScores && hasNoText) {
-      if (!window.confirm("还未做出评价，确认提交吗？\n\n您还没有修改任何评分或填写建议。")) {
+      const confirmed = window.confirm("还未做出评价，确认提交吗？\n\n您还没有修改任何评分或填写建议。");
+      if (!confirmed) {
         return;
       }
     }
     
     setIsSubmitting(true);
     
-    await new Promise(resolve => setTimeout(resolve, 600));
-    
-    await saveEvaluation({
-      evaluator: currentUser,
-      target: currentTarget,
-      pos_scores: posScores,
-      neg_scores: negScores,
-      text_start: textStart,
-      text_stop: textStop,
-      text_continue: textContinue
-    });
-    
-    onSuccess();
-
-    if (currentIndex < targets.length - 1) {
-      setCurrentIndex(prev => prev + 1);
-    } else {
-      setIsFinished(true);
+    try {
+      await new Promise(resolve => setTimeout(resolve, 600));
+      
+      await saveEvaluation({
+        evaluator: currentUser,
+        target: currentTarget,
+        pos_scores: posScores,
+        neg_scores: negScores,
+        text_start: textStart,
+        text_stop: textStop,
+        text_continue: textContinue
+      });
+      
+      onSuccess();
+  
+      if (currentIndex < targets.length - 1) {
+        setCurrentIndex(prev => prev + 1);
+      } else {
+        setIsFinished(true);
+      }
+    } catch (error) {
+      console.error('提交失败:', error);
+      alert('提交失败，请重试。');
+    } finally {
+      setIsSubmitting(false);
     }
-    
-    setIsSubmitting(false);
   };
 
   const handlePrevious = () => {

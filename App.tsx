@@ -25,6 +25,7 @@ import {
 } from './constants';
 import { saveEvaluation, getEvaluationStats, downloadCSV, clearAllEvaluations, getEvaluations } from './services/cloudStorageService';
 import { RadarView } from './components/RadarChart';
+import SingleRadar from './components/SingleRadarChart';
 import { AggregatedData } from './types';
 // @ts-ignore
 import html2canvas from 'html2canvas';
@@ -457,14 +458,20 @@ const EvaluationMode = ({
 const AdminDashboard = () => {
   const [selectedTarget, setSelectedTarget] = useState<string>(SUPERVISORS[0]);
   const [stats, setStats] = useState<AggregatedData | null>(null);
+  const [givenByTarget, setGivenByTarget] = useState<any[]>([]);
+  const [selectedEvaluator, setSelectedEvaluator] = useState<string>('');
   const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
-    const loadStats = async () => {
+    const loadData = async () => {
       const data = await getEvaluationStats(selectedTarget);
       setStats(data);
+      
+      const allEvaluations = await getEvaluations();
+      const targetEvaluations = allEvaluations.filter((e: any) => e.evaluator === selectedTarget);
+      setGivenByTarget(targetEvaluations);
     };
-    loadStats();
+    loadData();
   }, [selectedTarget]);
 
   useEffect(() => {
@@ -584,18 +591,26 @@ const AdminDashboard = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
         <div className="lg:col-span-1 space-y-4">
+          {/* 合并模块：选择查看对象(80%) + 收到评价(20%) */}
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-            <label className="block text-sm font-bold text-slate-500 mb-2">选择查看对象</label>
-            <div className="space-y-1 max-h-[600px] overflow-y-auto pr-2 custom-scrollbar">
-              {SUPERVISORS.map(name => (
-                <button
-                  key={name}
-                  onClick={() => setSelectedTarget(name)}
-                  className={`w-full text-left px-3 py-2 rounded-lg text-sm font-medium transition-colors ${selectedTarget === name ? 'bg-ksi-black text-white' : 'hover:bg-slate-100 text-slate-600'}`}
+            <div className="flex items-center gap-4">
+              <div className="flex-1" style={{ width: '80%' }}>
+                <label className="block text-sm font-bold text-slate-500 mb-1">选择查看对象</label>
+                <select
+                  value={selectedTarget}
+                  onChange={(e) => setSelectedTarget(e.target.value)}
+                  className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 >
-                  {name}
-                </button>
-              ))}
+                  <option value="">选择查看对象</option>
+                  {SUPERVISORS.map(name => (
+                    <option key={name} value={name}>{name}</option>
+                  ))}
+                </select>
+              </div>
+              <div className="flex-shrink-0 text-right" style={{ width: '20%', minWidth: '80px' }}>
+                <div className="text-xs text-slate-400 uppercase font-bold mb-1">收到评价</div>
+                <div className="text-xl font-bold text-blue-600">{stats?.count || 0}</div>
+              </div>
             </div>
           </div>
         </div>
@@ -603,13 +618,62 @@ const AdminDashboard = () => {
         <div className="lg:col-span-3 space-y-6">
           {stats ? (
             <>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                <div className="bg-white p-4 rounded-xl shadow-sm border border-slate-200">
-                  <div className="text-xs text-slate-500 uppercase font-bold mb-1">收到评价</div>
-                  <div className="text-2xl font-bold text-slate-800">{stats.count} <span className="text-sm font-normal text-slate-400">份</span></div>
+              <RadarView data={stats} disableAnimation={true} />
+              
+              {/* 给出的评价模块 */}
+              <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
+                <div className="mb-4">
+                  <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2 mb-3">
+                    <User className="w-5 h-5 text-blue-600" />
+                    {selectedTarget} 给出的评价
+                  </h3>
+                  
+                  {/* 下拉菜单选择被评价人 */}
+                  <select
+                    value={selectedEvaluator}
+                    onChange={(e) => setSelectedEvaluator(e.target.value)}
+                    className="w-full md:w-64 px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    <option value="">选择被评价人</option>
+                    {Array.from(new Set(givenByTarget.map(r => r.target))).sort().map(target => (
+                      <option key={target} value={target}>{target}</option>
+                    ))}
+                  </select>
                 </div>
+                
+                {selectedEvaluator ? (
+                  <div className="space-y-4">
+                    {givenByTarget.filter((r: any) => r.target === selectedEvaluator).map((record: any, idx) => (
+                      <div key={idx} className="bg-white p-4 rounded-lg shadow-sm border border-slate-100">
+                        <div className="flex justify-between items-start mb-4">
+                          <span className="text-sm font-bold text-slate-800">评价对象：{record.target}</span>
+                          <span className="text-xs text-slate-400">{record.timestamp ? new Date(record.timestamp).toLocaleDateString() : ''}</span>
+                        </div>
+                        
+                        {/* 雷达图展示评价详情 */}
+                        <SingleRadar 
+                          posScores={record.pos_scores || {}} 
+                          negScores={record.neg_scores || {}} 
+                          disableAnimation={true} 
+                        />
+                        
+                        {record.text_start && (
+                          <div className="mt-4 bg-blue-50 p-3 rounded border border-blue-100">
+                            <h4 className="text-sm font-bold text-blue-800 mb-2 flex items-center gap-1">
+                              <FastForward className="w-4 h-4" /> Continue
+                            </h4>
+                            <p className="text-sm text-slate-700">{record.text_start}</p>
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-slate-400 text-sm italic">请选择被评价人查看详细评价</div>
+                )}
               </div>
-              <RadarView data={stats} />
+              
+              {/* 收到的建议模块 */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 {[
                   { title: "Start", icon: PlayCircle, color: "emerald", list: stats.commentsStart },
@@ -619,7 +683,7 @@ const AdminDashboard = () => {
                   <div key={idx} className={`bg-white rounded-xl shadow-sm border border-${section.color}-100 overflow-hidden`}>
                     <div className={`bg-${section.color}-50 px-4 py-3 border-b border-${section.color}-100 flex items-center gap-2`}>
                       <section.icon className={`w-5 h-5 text-${section.color}-600`} />
-                      <h3 className={`font-bold text-${section.color}-800`}>{section.title}</h3>
+                      <h3 className={`font-bold text-slate-800`}>{section.title}</h3>
                     </div>
                     <div className="p-4 max-h-[300px] overflow-y-auto">
                       <ul className="space-y-3">

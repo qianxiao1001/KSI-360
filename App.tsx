@@ -644,7 +644,11 @@ const AdminDashboard = () => {
                 {selectedEvaluator ? (
                   <div className="space-y-4">
                     {givenByTarget.filter((r: any) => r.target === selectedEvaluator).map((record: any, idx) => (
-                      <div key={idx} className="bg-white p-4 rounded-lg shadow-sm border border-slate-100">
+                      <div 
+                        key={idx} 
+                        className="bg-white p-4 rounded-lg shadow-sm border border-slate-100 cursor-pointer hover:shadow-md transition-shadow"
+                        title={`评价人：${record.evaluator || '未知'}`}
+                      >
                         <div className="flex justify-between items-start mb-4">
                           <span className="text-sm font-bold text-slate-800">评价对象：{record.target}</span>
                           <span className="text-xs text-slate-400">{record.timestamp ? new Date(record.timestamp).toLocaleDateString() : ''}</span>

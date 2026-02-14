@@ -484,8 +484,13 @@ const AdminDashboard = () => {
             if (!report.offsetParent && report.offsetHeight === 0) continue;
 
             if (pageAdded) doc.addPage();
-            const canvas = await html2canvas(report, { scale: 1.5, useCORS: true, logging: false });
-            const imgData = canvas.toDataURL('image/jpeg', 0.9);
+            const canvas = await html2canvas(report, { 
+              scale: 2, 
+              useCORS: true, 
+              logging: false,
+              backgroundColor: '#ffffff'
+            });
+            const imgData = canvas.toDataURL('image/jpeg', 0.95);
             const imgProps = doc.getImageProperties(imgData);
             const pdfWidth = doc.internal.pageSize.getWidth();
             const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;

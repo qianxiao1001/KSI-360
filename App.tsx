@@ -240,6 +240,21 @@ const EvaluationMode = ({
     e.preventDefault();
     if (!currentTarget) return;
     
+    const defaultPosScores: Record<string, number> = {};
+    const defaultNegScores: Record<string, number> = {};
+    POSITIVE_QUESTIONS.forEach(q => defaultPosScores[q] = 5);
+    NEGATIVE_QUESTIONS.forEach(q => defaultNegScores[q] = 0);
+    
+    const isDefaultPosScores = POSITIVE_QUESTIONS.every(q => posScores[q] === defaultPosScores[q]);
+    const isDefaultNegScores = NEGATIVE_QUESTIONS.every(q => negScores[q] === defaultNegScores[q]);
+    const hasNoText = !textStart && !textStop && !textContinue;
+    
+    if (isDefaultPosScores && isDefaultNegScores && hasNoText) {
+      if (!window.confirm("还未做出评价，确认提交吗？\n\n您还没有修改任何评分或填写建议。")) {
+        return;
+      }
+    }
+    
     setIsSubmitting(true);
     
     await new Promise(resolve => setTimeout(resolve, 600));

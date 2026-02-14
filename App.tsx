@@ -226,6 +226,13 @@ const EvaluationMode = ({
     if (isFirstTime) {
       setShowWelcome(true);
     }
+    
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key && key.startsWith('ksi_draft_')) {
+        localStorage.removeItem(key);
+      }
+    }
   }, [currentUser]);
 
   useEffect(() => {
@@ -244,21 +251,7 @@ const EvaluationMode = ({
            setTextStop(existingRecord.text_stop || "");
            setTextContinue(existingRecord.text_continue || "");
         } else {
-           const savedDraft = localStorage.getItem(localStorageKey);
-           if (savedDraft) {
-             try {
-               const draft = JSON.parse(savedDraft);
-               setPosScores(draft.posScores || {});
-               setNegScores(draft.negScores || {});
-               setTextStart(draft.textStart || "");
-               setTextStop(draft.textStop || "");
-               setTextContinue(draft.textContinue || "");
-             } catch {
-               initDefaultScores();
-             }
-           } else {
-             initDefaultScores();
-           }
+           initDefaultScores();
         }
         
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -279,21 +272,13 @@ const EvaluationMode = ({
     };
     
     loadData();
-  }, [currentTarget, currentUser, localStorageKey]);
+  }, [currentTarget, currentUser]);
 
   useEffect(() => {
-    if (!isLoading && currentTarget) {
-      const draft = {
-        posScores,
-        negScores,
-        textStart,
-        textStop,
-        textContinue,
-        savedAt: new Date().toISOString()
-      };
-      localStorage.setItem(localStorageKey, JSON.stringify(draft));
+    if (currentTarget) {
+      localStorage.removeItem(localStorageKey);
     }
-  }, [posScores, negScores, textStart, textStop, textContinue, currentTarget, isLoading, localStorageKey]);
+  }, [currentTarget, localStorageKey]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

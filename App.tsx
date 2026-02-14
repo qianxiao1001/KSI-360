@@ -533,10 +533,12 @@ const AdminDashboard = () => {
   }, [isExporting]);
 
   const handleClearData = async () => {
-    if (window.confirm("⚠️ 警告：确定要清空所有调研数据吗？\n\n此操作不可恢复！")) {
+    if (window.confirm("⚠️ 警告：确定要清空所有调研数据吗？\n\n此操作将：\n1. 清空所有评价数据\n2. 重置所有用户的提交状态\n3. 允许所有用户重新填写评价\n\n此操作不可恢复！")) {
       await clearAllEvaluations();
+      localStorage.removeItem('ksi_evaluations_reset');
+      localStorage.setItem('ksi_evaluations_reset', new Date().toISOString());
       setStats(null);
-      alert("数据已清空。");
+      alert("数据已清空，所有用户的提交状态已重置。");
     }
   };
 
@@ -743,7 +745,9 @@ export default function App() {
       const userEvaluations = allEvaluations.filter((e: any) => e.evaluator === user.name);
       const targets = SUPERVISORS.filter(s => s !== user.name);
       
-      if (userEvaluations.length >= targets.length) {
+      const resetTimestamp = localStorage.getItem('ksi_evaluations_reset');
+      
+      if (userEvaluations.length >= targets.length && !resetTimestamp) {
         setHasSubmitted(true);
         alert("已完成提交\n\n您已经完成了所有评价，感谢您的参与！");
         return;

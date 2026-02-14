@@ -41,17 +41,27 @@ export const getEvaluations = async (): Promise<EvaluationRecord[]> => {
   return res.data || [];
 };
 
-export const clearAllEvaluations = async (): Promise<void> => {
+export const clearAllEvaluations = async (): Promise<number> => {
   await loginAnonymous();
   
   const collection = db.collection(COLLECTION_NAME);
   const res = await collection.get();
   
+  let deleteCount = 0;
+  
   if (res.data) {
     for (const doc of res.data) {
-      await collection.doc(doc._id).remove();
+      try {
+        await collection.doc(doc._id).remove();
+        deleteCount++;
+        console.log(`已删除记录 ${deleteCount}:`, doc._id);
+      } catch (err) {
+        console.error('删除记录失败:', doc._id, err);
+      }
     }
   }
+  
+  return deleteCount;
 };
 
 export const getEvaluationStats = async (targetName: string): Promise<AggregatedData | null> => {

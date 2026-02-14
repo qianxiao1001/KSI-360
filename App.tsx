@@ -549,11 +549,24 @@ const AdminDashboard = () => {
 
   const handleClearData = async () => {
     if (window.confirm("是否重置所有记录？\n\n此操作将：\n1. 清空所有评价数据\n2. 重置所有用户的提交状态\n3. 允许所有用户重新填写评价\n\n此操作不可恢复！")) {
-      await clearAllEvaluations();
-      localStorage.removeItem('ksi_evaluations_reset');
-      localStorage.setItem('ksi_evaluations_reset', new Date().toISOString());
-      setStats(null);
-      alert("数据已清空，所有用户的提交状态已重置。");
+      try {
+        const deleteCount = await clearAllEvaluations();
+        localStorage.removeItem('ksi_evaluations_reset');
+        localStorage.setItem('ksi_evaluations_reset', new Date().toISOString());
+        setStats(null);
+        
+        const data = await getEvaluationStats(selectedTarget);
+        setStats(data);
+        
+        const allEvaluations = await getEvaluations();
+        const targetEvaluations = allEvaluations.filter((e: any) => e.evaluator === selectedTarget);
+        setGivenByTarget(targetEvaluations);
+        
+        alert(`已成功删除 ${deleteCount} 条记录，所有用户的提交状态已重置。`);
+      } catch (error) {
+        console.error('清空记录失败:', error);
+        alert('清空记录失败，请检查控制台日志了解详情。');
+      }
     }
   };
 

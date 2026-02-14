@@ -667,6 +667,36 @@ const AdminDashboard = () => {
             <>
               <RadarView data={stats} disableAnimation={true} />
               
+              {/* 收到的建议模块 */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {[
+                  { title: "Start", icon: PlayCircle, color: "emerald", list: stats.commentsStart },
+                  { title: "Stop", icon: StopCircle, color: "rose", list: stats.commentsStop },
+                  { title: "Continue", icon: FastForward, color: "blue", list: stats.commentsContinue }
+                ].map((section, idx) => (
+                  <div key={idx} className={`bg-white rounded-xl shadow-sm border border-${section.color}-100 overflow-hidden`}>
+                    <div className={`bg-${section.color}-50 px-4 py-3 border-b border-${section.color}-100 flex items-center gap-2`}>
+                      <section.icon className={`w-5 h-5 text-${section.color}-600`} />
+                      <h3 className={`font-bold text-slate-800`}>{section.title}</h3>
+                    </div>
+                    <div className="p-4 max-h-[300px] overflow-y-auto">
+                      <ul className="space-y-3">
+                        {section.list.map((c: any, i) => (
+                          <li 
+                            key={i} 
+                            className="text-sm text-slate-700 bg-slate-50 p-2 rounded border border-slate-100 cursor-pointer hover:shadow-md transition-shadow"
+                            title={`评价人：${c.evaluator || '未知'}`}
+                          >
+                            {typeof c === 'string' ? c : c.text}
+                          </li>
+                        ))}
+                        {section.list.length === 0 && <div className="text-slate-400 text-sm italic">暂无建议</div>}
+                      </ul>
+                    </div>
+                  </div>
+                ))}
+              </div>
+              
               {/* 给出的评价模块 */}
               <div className="bg-slate-50 rounded-xl p-4 border border-slate-200">
                 <div className="mb-4">
@@ -722,36 +752,6 @@ const AdminDashboard = () => {
                 ) : (
                   <div className="text-slate-400 text-sm italic">请选择被评价人查看详细评价</div>
                 )}
-              </div>
-              
-              {/* 收到的建议模块 */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                {[
-                  { title: "Start", icon: PlayCircle, color: "emerald", list: stats.commentsStart },
-                  { title: "Stop", icon: StopCircle, color: "rose", list: stats.commentsStop },
-                  { title: "Continue", icon: FastForward, color: "blue", list: stats.commentsContinue }
-                ].map((section, idx) => (
-                  <div key={idx} className={`bg-white rounded-xl shadow-sm border border-${section.color}-100 overflow-hidden`}>
-                    <div className={`bg-${section.color}-50 px-4 py-3 border-b border-${section.color}-100 flex items-center gap-2`}>
-                      <section.icon className={`w-5 h-5 text-${section.color}-600`} />
-                      <h3 className={`font-bold text-slate-800`}>{section.title}</h3>
-                    </div>
-                    <div className="p-4 max-h-[300px] overflow-y-auto">
-                      <ul className="space-y-3">
-                        {section.list.map((c: any, i) => (
-                          <li 
-                            key={i} 
-                            className="text-sm text-slate-700 bg-slate-50 p-2 rounded border border-slate-100 cursor-pointer hover:shadow-md transition-shadow"
-                            title={`评价人：${c.evaluator || '未知'}`}
-                          >
-                            {typeof c === 'string' ? c : c.text}
-                          </li>
-                        ))}
-                        {section.list.length === 0 && <div className="text-slate-400 text-sm italic">暂无建议</div>}
-                      </ul>
-                    </div>
-                  </div>
-                ))}
               </div>
             </>
           ) : (

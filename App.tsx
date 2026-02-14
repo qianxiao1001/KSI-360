@@ -548,7 +548,7 @@ const AdminDashboard = () => {
   }, [isExporting]);
 
   const handleClearData = async () => {
-    if (window.confirm("⚠️ 警告：确定要清空所有调研数据吗？\n\n此操作将：\n1. 清空所有评价数据\n2. 重置所有用户的提交状态\n3. 允许所有用户重新填写评价\n\n此操作不可恢复！")) {
+    if (window.confirm("是否重置所有记录？\n\n此操作将：\n1. 清空所有评价数据\n2. 重置所有用户的提交状态\n3. 允许所有用户重新填写评价\n\n此操作不可恢复！")) {
       await clearAllEvaluations();
       localStorage.removeItem('ksi_evaluations_reset');
       localStorage.setItem('ksi_evaluations_reset', new Date().toISOString());

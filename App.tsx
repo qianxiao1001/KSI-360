@@ -54,45 +54,57 @@ const SliderInput: React.FC<SliderInputProps> = ({
   maxVal = 10,
   description,
   scoreLabel
-}) => (
-  <div className="mb-4 p-3 bg-white rounded-lg shadow-sm border border-slate-100 hover:border-slate-300 transition-colors">
-    <div className="flex flex-col mb-1">
-      <div className="flex justify-between items-start md:items-center gap-2 mb-1">
-        <label className="text-sm font-bold text-slate-800 flex-1 leading-snug">{label}</label>
-        <div className="flex flex-col items-center min-w-[50px]">
-           <span className={`text-xl font-bold ${colorClass} bg-slate-50 rounded px-2`}>{value}</span>
-           <span className="text-[10px] text-slate-400">分</span>
+}) => {
+  const ticks = [];
+  for (let i = minVal; i <= maxVal; i++) {
+    ticks.push(i);
+  }
+
+  return (
+    <div className="mb-3 md:mb-4 p-2 md:p-3 bg-white rounded-lg shadow-sm border border-slate-100 hover:border-slate-300 transition-colors">
+      <div className="flex flex-col mb-1">
+        <div className="flex justify-between items-start md:items-center gap-2 mb-1">
+          <label className="text-sm font-bold text-slate-800 flex-1 leading-snug">{label}</label>
+          <div className="flex flex-col items-center min-w-[50px]">
+             <span className={`text-lg md:text-xl font-bold ${colorClass} bg-slate-50 rounded px-2`}>{value}</span>
+             <span className="text-[10px] text-slate-400">分</span>
+          </div>
         </div>
+        
+        {description && (
+          <div className="text-xs text-slate-600 mb-3 bg-slate-50 p-2 rounded border border-slate-100 leading-relaxed text-justify">
+            {description}
+          </div>
+        )}
+      </div>
+
+      <div className="flex items-center gap-3">
+         {scoreLabel && <span className="text-[10px] font-bold text-slate-500 w-16 text-right">{scoreLabel}:</span>}
+         <input
+          type="range"
+          min={minVal}
+          max={maxVal}
+          step={0.5}
+          value={value}
+          onChange={(e) => onChange(parseFloat(e.target.value))}
+          className="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-current"
+          style={{ accentColor: colorClass.includes('red') ? '#e11d48' : '#1A1A1A' }}
+        />
       </div>
       
-      {description && (
-        <div className="text-xs text-slate-600 mb-3 bg-slate-50 p-2 rounded border border-slate-100 leading-relaxed text-justify">
-          {description}
+      <div className={`relative mt-2 ${scoreLabel ? 'pl-20' : ''}`}>
+        <div className="flex justify-between text-[9px] text-slate-400">
+          {ticks.map((tick) => (
+            <span key={tick} className="flex flex-col items-center">
+              <div className="w-0.5 h-1.5 bg-slate-300 mb-0.5"></div>
+              {tick}
+            </span>
+          ))}
         </div>
-      )}
+      </div>
     </div>
-
-    <div className="flex items-center gap-3">
-       {scoreLabel && <span className="text-[10px] font-bold text-slate-500 w-16 text-right">{scoreLabel}:</span>}
-       <input
-        type="range"
-        min={minVal}
-        max={maxVal}
-        step={0.5}
-        value={value}
-        onChange={(e) => onChange(parseFloat(e.target.value))}
-        className="flex-1 h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-current"
-        style={{ accentColor: colorClass.includes('red') ? '#e11d48' : '#1A1A1A' }}
-      />
-    </div>
-    
-    <div className={`flex justify-between text-[10px] text-slate-400 mt-1 ${scoreLabel ? 'pl-20' : ''}`}>
-      <span>{minVal}</span>
-      <span>{(maxVal + minVal)/2}</span>
-      <span>{maxVal}</span>
-    </div>
-  </div>
-);
+  );
+};
 
 // --- Print Component ---
 
@@ -193,6 +205,7 @@ const EvaluationMode = ({
   
   const [currentIndex, setCurrentIndex] = useState(0);
   const [isFinished, setIsFinished] = useState(false);
+  const [showWelcome, setShowWelcome] = useState(false);
 
   const [posScores, setPosScores] = useState<Record<string, number>>({});
   const [negScores, setNegScores] = useState<Record<string, number>>({});
@@ -202,14 +215,27 @@ const EvaluationMode = ({
   const [textContinue, setTextContinue] = useState("");
   
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [completedCount, setCompletedCount] = useState(0);
 
   const currentTarget = targets[currentIndex];
+  const localStorageKey = `ksi_draft_${currentUser}_${currentTarget}`;
 
   useEffect(() => {
-    const loadExistingRecord = async () => {
+    const isFirstTime = !localStorage.getItem(`ksi_welcomed_${currentUser}`);
+    if (isFirstTime) {
+      setShowWelcome(true);
+    }
+  }, [currentUser]);
+
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
       if (currentTarget) {
         const allRecords = await getEvaluations();
         const existingRecord = allRecords.find(r => r.evaluator === currentUser && r.target === currentTarget);
+        const userEvaluations = allRecords.filter((e: any) => e.evaluator === currentUser);
+        setCompletedCount(userEvaluations.length);
 
         if (existingRecord) {
            setPosScores(existingRecord.pos_scores);
@@ -218,23 +244,56 @@ const EvaluationMode = ({
            setTextStop(existingRecord.text_stop || "");
            setTextContinue(existingRecord.text_continue || "");
         } else {
-           const pInit: Record<string, number> = {};
-           const nInit: Record<string, number> = {};
-           POSITIVE_QUESTIONS.forEach(q => pInit[q] = 5);
-           NEGATIVE_QUESTIONS.forEach(q => nInit[q] = 0);
-           setPosScores(pInit);
-           setNegScores(nInit);
-           setTextStart("");
-           setTextStop("");
-           setTextContinue("");
+           const savedDraft = localStorage.getItem(localStorageKey);
+           if (savedDraft) {
+             try {
+               const draft = JSON.parse(savedDraft);
+               setPosScores(draft.posScores || {});
+               setNegScores(draft.negScores || {});
+               setTextStart(draft.textStart || "");
+               setTextStop(draft.textStop || "");
+               setTextContinue(draft.textContinue || "");
+             } catch {
+               initDefaultScores();
+             }
+           } else {
+             initDefaultScores();
+           }
         }
         
         window.scrollTo({ top: 0, behavior: 'smooth' });
       }
+      setIsLoading(false);
     };
     
-    loadExistingRecord();
-  }, [currentTarget, currentUser]);
+    const initDefaultScores = () => {
+      const pInit: Record<string, number> = {};
+      const nInit: Record<string, number> = {};
+      POSITIVE_QUESTIONS.forEach(q => pInit[q] = 5);
+      NEGATIVE_QUESTIONS.forEach(q => nInit[q] = 0);
+      setPosScores(pInit);
+      setNegScores(nInit);
+      setTextStart("");
+      setTextStop("");
+      setTextContinue("");
+    };
+    
+    loadData();
+  }, [currentTarget, currentUser, localStorageKey]);
+
+  useEffect(() => {
+    if (!isLoading && currentTarget) {
+      const draft = {
+        posScores,
+        negScores,
+        textStart,
+        textStop,
+        textContinue,
+        savedAt: new Date().toISOString()
+      };
+      localStorage.setItem(localStorageKey, JSON.stringify(draft));
+    }
+  }, [posScores, negScores, textStart, textStop, textContinue, currentTarget, isLoading, localStorageKey]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -273,6 +332,7 @@ const EvaluationMode = ({
         text_continue: textContinue
       });
       
+      localStorage.removeItem(localStorageKey);
       onSuccess();
   
       if (currentIndex < targets.length - 1) {
@@ -293,6 +353,42 @@ const EvaluationMode = ({
       setCurrentIndex(prev => prev - 1);
     }
   };
+
+  if (showWelcome) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[80vh] text-center animate-fade-in px-4">
+        <div className="bg-white p-6 md:p-10 ksi-card max-w-xl w-full shadow-glow">
+            <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <User className="w-10 h-10 text-blue-600" />
+            </div>
+            <h2 className="text-2xl md:text-3xl font-bold text-slate-800 mb-4">欢迎，{currentUser}</h2>
+            <div className="text-left text-slate-600 space-y-3 mb-8 text-sm md:text-base">
+              <p>📋 您需要评价 <strong>{targets.length}</strong> 位主管</p>
+              <p>✅ 评价会自动保存草稿</p>
+              <p>🔒 您的评价将保密，仅供管理层参考</p>
+            </div>
+            <button 
+              onClick={() => {
+                setShowWelcome(false);
+                localStorage.setItem(`ksi_welcomed_${currentUser}`, 'true');
+              }}
+              className="w-full py-4 btn-ksi-primary rounded-xl font-black text-lg shadow-lg"
+            >
+              开始评价
+            </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-ksi-black mb-4"></div>
+        <p className="text-slate-500">加载中...</p>
+      </div>
+    );
+  }
 
   if (isFinished) {
     return (
@@ -315,10 +411,25 @@ const EvaluationMode = ({
     return <div className="text-center mt-20 text-slate-500">没有需要评价的对象。</div>;
   }
 
+  const progress = ((currentIndex + 1) / targets.length) * 100;
+
   return (
-    <div className="max-w-4xl mx-auto space-y-4 animate-fade-in pb-24">
-      <div className="sticky top-14 z-20 bg-slate-50/95 backdrop-blur-sm py-2 md:static md:bg-transparent md:py-0 md:mb-6 transition-all">
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-3 md:p-6 mx-0 sticky-header">
+    <div className="max-w-4xl mx-auto space-y-4 animate-fade-in pb-24 pt-2">
+      <div className="sticky top-14 z-50 bg-slate-50/98 backdrop-blur-md py-2 mb-4 shadow-sm transition-all">
+        <div className="bg-white rounded-xl shadow-lg border border-slate-200 p-3 md:p-4 mx-0 sticky-header">
+          <div className="mb-3">
+            <div className="flex justify-between text-xs text-slate-500 mb-1">
+              <span>评价进度</span>
+              <span>{completedCount}/{targets.length} 已完成 · 第{currentIndex + 1}位</span>
+            </div>
+            <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-ksi-black transition-all duration-500 rounded-full"
+                style={{ width: `${progress}%` }}
+              ></div>
+            </div>
+          </div>
+          
           <div className="flex items-center justify-between">
               <div className="flex-1 min-w-0">
                  <div className="text-[10px] text-slate-500 font-medium mb-0.5">评价人</div>
@@ -332,7 +443,7 @@ const EvaluationMode = ({
                    <span className="text-[10px] text-ksi-black font-bold">正在评价</span>
                    <span className="text-[10px] text-slate-400 bg-slate-100 px-1 rounded-full">{currentIndex + 1}/{targets.length}</span>
                  </div>
-                 <div className="text-lg md:text-3xl font-bold text-ksi-black truncate">
+                 <div className="text-lg md:text-2xl font-bold text-ksi-black truncate">
                    {currentTarget}
                  </div>
               </div>
@@ -340,7 +451,7 @@ const EvaluationMode = ({
         </div>
       </div>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form onSubmit={handleSubmit} className="space-y-4 md:space-y-6">
           <section>
             <div className="bg-ksi-yellow text-ksi-black p-3 md:p-4 rounded-t-xl shadow-sm flex items-center gap-2">
               <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-ksi-black/10 flex items-center justify-center font-extrabold text-sm md:text-base">1</div>
@@ -493,15 +604,20 @@ const AdminDashboard = () => {
   const [givenByTarget, setGivenByTarget] = useState<any[]>([]);
   const [selectedEvaluator, setSelectedEvaluator] = useState<string>('');
   const [isExporting, setIsExporting] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [allEvaluations, setAllEvaluations] = useState<any[]>([]);
 
   useEffect(() => {
     const loadData = async () => {
+      setIsLoading(true);
       const data = await getEvaluationStats(selectedTarget);
       setStats(data);
       
-      const allEvaluations = await getEvaluations();
-      const targetEvaluations = allEvaluations.filter((e: any) => e.evaluator === selectedTarget);
+      const allEvals = await getEvaluations();
+      setAllEvaluations(allEvals);
+      const targetEvaluations = allEvals.filter((e: any) => e.evaluator === selectedTarget);
       setGivenByTarget(targetEvaluations);
+      setIsLoading(false);
     };
     loadData();
   }, [selectedTarget]);
@@ -608,24 +724,24 @@ const AdminDashboard = () => {
 
   return (
     <div className="max-w-6xl mx-auto p-4 animate-fade-in relative">
-      <div className="flex flex-col md:flex-row justify-between items-center mb-8 bg-white p-4 rounded-xl shadow-sm border border-slate-200 gap-4">
+      <div className="flex flex-col md:flex-row justify-between items-center mb-6 bg-white p-4 rounded-xl shadow-sm border border-slate-200 gap-4">
         <h2 className="text-2xl font-bold text-slate-800 flex items-center gap-2">
           <BarChart3 className="w-8 h-8 text-ksi-black" />
           管理驾驶舱
         </h2>
         
-        <div className="flex items-center gap-3">
-          <button onClick={handleTestDB} className="bg-white border border-slate-200 hover:bg-slate-50 text-ksi-black px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors text-sm">
-            DB 测试写入
+        <div className="flex flex-wrap items-center gap-2 md:gap-3">
+          <button onClick={handleTestDB} className="bg-white border border-slate-200 hover:bg-slate-50 text-ksi-black px-3 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors text-sm">
+            DB 测试
           </button>
-          <button onClick={handleClearData} className="bg-white border border-rose-200 hover:bg-rose-50 text-rose-600 px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors text-sm">
-            <Trash2 className="w-4 h-4" /> 清空记录
+          <button onClick={handleClearData} className="bg-white border border-rose-200 hover:bg-rose-50 text-rose-600 px-3 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors text-sm">
+            <Trash2 className="w-4 h-4" /> 清空
           </button>
-          <button onClick={handleExportPDF} disabled={isExporting} className="btn-ksi-primary px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors text-sm disabled:opacity-50">
-            <FileText className="w-4 h-4" /> {isExporting ? '生成中...' : '导出PDF'}
+          <button onClick={handleExportPDF} disabled={isExporting} className="btn-ksi-primary px-3 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors text-sm disabled:opacity-50">
+            <FileText className="w-4 h-4" /> {isExporting ? '生成中...' : 'PDF'}
           </button>
-          <button onClick={downloadCSV} className="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors text-sm">
-            <Download className="w-4 h-4" /> 导出CSV
+          <button onClick={downloadCSV} className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors text-sm">
+            <Download className="w-4 h-4" /> CSV
           </button>
         </div>
       </div>
@@ -636,36 +752,62 @@ const AdminDashboard = () => {
         </div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        <div className="lg:col-span-1 space-y-4">
-          {/* 合并模块：选择查看对象(80%) + 收到评价(20%) */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
-            <div className="flex items-center gap-4">
-              <div className="flex-1" style={{ width: '80%' }}>
-                <label className="block text-sm font-bold text-slate-500 mb-1">选择查看对象</label>
-                <select
-                  value={selectedTarget}
-                  onChange={(e) => setSelectedTarget(e.target.value)}
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="">选择查看对象</option>
-                  {SUPERVISORS.map(name => (
-                    <option key={name} value={name}>{name}</option>
-                  ))}
-                </select>
-              </div>
-              <div className="flex-shrink-0 text-right" style={{ width: '20%', minWidth: '80px' }}>
-                <div className="text-xs text-slate-400 uppercase font-bold mb-1">收到评价</div>
-                <div className="text-xl font-bold text-blue-600">{stats?.count || 0}</div>
+      {isLoading ? (
+        <div className="flex flex-col items-center justify-center py-20">
+          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-ksi-black mb-4"></div>
+          <p className="text-slate-500">加载数据中...</p>
+        </div>
+      ) : (
+        <>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+            <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-xl p-4 border border-blue-200">
+              <div className="text-xs font-bold text-blue-600 mb-1">总评价数</div>
+              <div className="text-3xl font-extrabold text-blue-800">{allEvaluations.length}</div>
+            </div>
+            <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 rounded-xl p-4 border border-emerald-200">
+              <div className="text-xs font-bold text-emerald-600 mb-1">已评价人数</div>
+              <div className="text-3xl font-extrabold text-emerald-800">
+                {new Set(allEvaluations.map((e: any) => e.evaluator)).size}
               </div>
             </div>
+            <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 border border-purple-200">
+              <div className="text-xs font-bold text-purple-600 mb-1">主管人数</div>
+              <div className="text-3xl font-extrabold text-purple-800">{SUPERVISORS.length}</div>
+            </div>
+            <div className="bg-gradient-to-br from-amber-50 to-amber-100 rounded-xl p-4 border border-amber-200">
+              <div className="text-xs font-bold text-amber-600 mb-1">当前查看对象</div>
+              <div className="text-xl font-extrabold text-amber-800 truncate">{selectedTarget}</div>
+            </div>
           </div>
-        </div>
 
-        <div className="lg:col-span-3 space-y-6">
-          {stats ? (
-            <>
-              <RadarView data={stats} disableAnimation={true} />
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <div className="lg:col-span-1 space-y-4">
+              <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-4">
+                <div className="flex items-center gap-4">
+                  <div className="flex-1" style={{ width: '80%' }}>
+                    <label className="block text-sm font-bold text-slate-500 mb-1">选择查看对象</label>
+                    <select
+                      value={selectedTarget}
+                      onChange={(e) => setSelectedTarget(e.target.value)}
+                      className="w-full px-3 py-2 rounded-lg border border-slate-300 bg-white text-sm font-medium focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    >
+                      {SUPERVISORS.map(name => (
+                        <option key={name} value={name}>{name}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="flex-shrink-0 text-right" style={{ width: '20%', minWidth: '80px' }}>
+                    <div className="text-xs text-slate-400 uppercase font-bold mb-1">收到评价</div>
+                    <div className="text-xl font-bold text-blue-600">{stats?.count || 0}</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="lg:col-span-3 space-y-6">
+              {stats && stats.count > 0 ? (
+                <>
+                  <RadarView data={stats} disableAnimation={true} />
               
               {/* 收到的建议模块 */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -755,13 +897,16 @@ const AdminDashboard = () => {
               </div>
             </>
           ) : (
-            <div className="bg-white p-12 rounded-xl shadow-sm border border-slate-200 text-center text-slate-400">
-              <BarChart3 className="w-16 h-16 mx-auto mb-4 opacity-20" />
-              <p>暂无该主管的评价数据</p>
+            <div className="bg-white p-12 rounded-xl shadow-sm border border-slate-200 text-center">
+              <BarChart3 className="w-16 h-16 mx-auto mb-4 text-slate-200" />
+              <h3 className="text-lg font-bold text-slate-600 mb-2">暂无评价数据</h3>
+              <p className="text-slate-400 text-sm">该主管还没有收到评价，或者所有评价数据已被清空。</p>
             </div>
           )}
         </div>
       </div>
+      </>
+      )}
     </div>
   );
 };

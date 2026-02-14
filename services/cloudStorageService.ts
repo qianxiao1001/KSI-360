@@ -52,7 +52,7 @@ export const clearAllEvaluations = async (): Promise<number> => {
   
   let deleteCount = 0;
   
-  if (res.data) {
+  if (res.data && res.data.length > 0) {
     console.log(`[clearAllEvaluations] 共找到 ${res.data.length} 条记录，开始删除...`);
     
     for (const doc of res.data) {
@@ -62,9 +62,30 @@ export const clearAllEvaluations = async (): Promise<number> => {
         console.log(`[clearAllEvaluations] 删除结果:`, deleteRes);
         deleteCount++;
         console.log(`[clearAllEvaluations] 已删除 ${deleteCount}/${res.data.length} 条记录`);
-      } catch (err) {
+      } catch (err: any) {
         console.error('[clearAllEvaluations] 删除记录失败:', doc._id, err);
-        alert('删除失败！错误信息已输出到控制台。可能是数据库权限不足，请在腾讯云控制台配置数据库权限。');
+        
+        let errorMessage = '删除失败！\n\n';
+        if (err.message && err.message.includes('permission')) {
+          errorMessage += '❌ 数据库权限不足\n\n';
+        } else {
+          errorMessage += '❌ 发生错误: ' + (err.message || String(err)) + '\n\n';
+        }
+        
+        errorMessage += '🔧 解决方案：\n';
+        errorMessage += '1. 请登录腾讯云控制台\n';
+        errorMessage += '2. 进入云开发 → 数据库\n';
+        errorMessage += '3. 找到 evaluations 集合\n';
+        errorMessage += '4. 点击"安全规则"\n';
+        errorMessage += '5. 将规则修改为：\n';
+        errorMessage += '   {\n';
+        errorMessage += '     "read": true,\n';
+        errorMessage += '     "write": true\n';
+        errorMessage += '   }\n';
+        errorMessage += '6. 点击"确定"保存\n\n';
+        errorMessage += '配置完成后请重试！';
+        
+        alert(errorMessage);
         throw err;
       }
     }

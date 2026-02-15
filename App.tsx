@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import './App.css';
 import { 
   User, 
@@ -12,7 +12,12 @@ import {
   Trash2,
   FileText,
   ArrowLeft,
-  ArrowRight
+  ArrowRight,
+  Save,
+  Upload,
+  History,
+  Info,
+  X
 } from 'lucide-react';
 import { 
   SUPERVISORS, 
@@ -23,7 +28,19 @@ import {
   ADMIN_PASSWORD,
   USER_ACCOUNTS
 } from './constants';
-import { saveEvaluation, getEvaluationStats, downloadCSV, clearAllEvaluations, getEvaluations } from './services/cloudStorageService';
+import { 
+  saveEvaluation, 
+  getEvaluationStats, 
+  downloadCSV, 
+  clearAllEvaluations, 
+  getEvaluations,
+  backupData,
+  restoreData,
+  getOperationLogs,
+  clearOperationLogs,
+  addOperationLog,
+  OperationLog
+} from './services/cloudStorageService';
 import { RadarView } from './components/RadarChart';
 import SingleRadar from './components/SingleRadarChart';
 import { AggregatedData } from './types';
@@ -369,8 +386,8 @@ const EvaluationMode = ({
   if (isLoading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[60vh] px-4">
-        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-ksi-black mb-4"></div>
-        <p className="text-slate-500">加载中...</p>
+        <div className="loading-spinner mb-4"></div>
+        <p className="text-slate-500 loading-pulse">加载中...</p>
       </div>
     );
   }
@@ -494,12 +511,12 @@ const EvaluationMode = ({
           </section>
 
           <section>
-            <div className="bg-ksi-black text-white p-3 md:p-4 rounded-t-xl shadow-sm flex items-center gap-2">
-               <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-white/20 flex items-center justify-center font-bold text-sm md:text-base">3</div>
-              <h3 className="text-base md:text-xl font-bold">一针见血 (Start, Stop, Continue)</h3>
+            <div className="bg-blue-600 text-white p-3 md:p-4 rounded-t-xl shadow-sm flex items-center gap-2">
+               <div className="w-6 h-6 md:w-8 md:h-8 rounded-full bg-white/25 flex items-center justify-center font-extrabold text-sm md:text-base">3</div>
+              <h3 className="text-base md:text-xl font-black">一针见血 (Start, Stop, Continue)</h3>
             </div>
             <div className="bg-white border-x border-b border-slate-200 p-3 md:p-6 rounded-b-xl shadow-sm">
-              <p className="text-xs md:text-sm text-slate-600 italic mb-4 bg-slate-50 p-2 md:p-3 rounded border border-slate-100">
+              <p className="text-xs md:text-sm text-slate-600 italic mb-4 bg-blue-50 p-2 md:p-3 rounded border border-blue-100">
                 *请用<strong>极简短的语言</strong>（一句话）给出你的核心建议，直击要害。* <span className="text-ksi-black font-bold ml-1">如无建议可以不写</span>
               </p>
 
@@ -583,7 +600,25 @@ const EvaluationMode = ({
   );
 };
 
-const AdminDashboard = () => {
+const AdminDashboard = ({ 
+  handleBackup,
+  handleRestore,
+  fileInputRef,
+  logs,
+  showLogs,
+  setShowLogs,
+  loadLogs,
+  handleClearLogs
+}: { 
+  handleBackup: () => Promise<void>;
+  handleRestore: (e: React.ChangeEvent<HTMLInputElement>) => Promise<void>;
+  fileInputRef: React.RefObject<HTMLInputElement>;
+  logs: OperationLog[];
+  showLogs: boolean;
+  setShowLogs: (show: boolean) => void;
+  loadLogs: () => void;
+  handleClearLogs: () => void;
+}) => {
   const [selectedTarget, setSelectedTarget] = useState<string>(SUPERVISORS[0]);
   const [stats, setStats] = useState<AggregatedData | null>(null);
   const [givenByTarget, setGivenByTarget] = useState<any[]>([]);
@@ -716,20 +751,105 @@ const AdminDashboard = () => {
         </h2>
         
         <div className="flex flex-wrap items-center gap-2 md:gap-3">
+          <button 
+            onClick={handleBackup} 
+            className="bg-white border border-slate-200 hover:bg-slate-50 text-ksi-black px-3 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors text-sm"
+            title="备份数据"
+          >
+            <Save className="w-4 h-4" /> 备份
+          </button>
+          
+          <label className="bg-white border border-slate-200 hover:bg-slate-50 text-ksi-black px-3 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors text-sm cursor-pointer" title="恢复数据">
+            <Upload className="w-4 h-4" /> 恢复
+            <input 
+              ref={fileInputRef}
+              type="file" 
+              accept=".json"
+              onChange={handleRestore}
+              className="hidden"
+            />
+          </label>
+          
+          <button 
+            onClick={() => {
+              loadLogs();
+              setShowLogs(true);
+            }} 
+            className="bg-white border border-slate-200 hover:bg-slate-50 text-ksi-black px-3 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors text-sm"
+            title="查看操作日志"
+          >
+            <History className="w-4 h-4" /> 日志
+          </button>
+          
           <button onClick={handleTestDB} className="bg-white border border-slate-200 hover:bg-slate-50 text-ksi-black px-3 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors text-sm">
             DB 测试
           </button>
+          
           <button onClick={handleClearData} className="bg-white border border-rose-200 hover:bg-rose-50 text-rose-600 px-3 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors text-sm">
             <Trash2 className="w-4 h-4" /> 清空
           </button>
+          
           <button onClick={handleExportPDF} disabled={isExporting} className="btn-ksi-primary px-3 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors text-sm disabled:opacity-50">
             <FileText className="w-4 h-4" /> {isExporting ? '生成中...' : 'PDF'}
           </button>
+          
           <button onClick={downloadCSV} className="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-2 rounded-lg font-bold flex items-center gap-2 transition-colors text-sm">
             <Download className="w-4 h-4" /> CSV
           </button>
         </div>
       </div>
+
+      {showLogs && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-3xl w-full max-h-[80vh] overflow-hidden">
+            <div className="flex justify-between items-center p-4 border-b border-slate-200">
+              <h3 className="text-lg font-bold text-slate-800 flex items-center gap-2">
+                <History className="w-5 h-5" /> 操作日志
+              </h3>
+              <div className="flex items-center gap-2">
+                <button 
+                  onClick={handleClearLogs}
+                  className="text-sm text-rose-600 hover:text-rose-700 font-medium"
+                >
+                  清空日志
+                </button>
+                <button 
+                  onClick={() => setShowLogs(false)}
+                  className="p-1 hover:bg-slate-100 rounded"
+                >
+                  <X className="w-5 h-5 text-slate-500" />
+                </button>
+              </div>
+            </div>
+            <div className="p-4 overflow-y-auto max-h-[60vh]">
+              {logs.length === 0 ? (
+                <div className="text-center text-slate-400 py-8">暂无操作日志</div>
+              ) : (
+                <div className="space-y-2">
+                  {logs.map((log, idx) => (
+                    <div key={idx} className="bg-slate-50 p-3 rounded-lg">
+                      <div className="flex justify-between items-start">
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-1 rounded text-xs font-bold ${
+                            log.action === 'backup' ? 'bg-blue-100 text-blue-700' :
+                            log.action === 'restore' ? 'bg-emerald-100 text-emerald-700' :
+                            log.action === 'clear' ? 'bg-rose-100 text-rose-700' :
+                            'bg-slate-200 text-slate-700'
+                          }`}>
+                            {log.action}
+                          </span>
+                          <span className="text-sm text-slate-700">{log.details}</span>
+                        </div>
+                        <span className="text-xs text-slate-400">{new Date(log.timestamp).toLocaleString('zh-CN')}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       {isExporting && (
         <div id="pdf-export-container" className="absolute top-0 left-0 -z-50 opacity-0 pointer-events-none">
@@ -739,8 +859,8 @@ const AdminDashboard = () => {
 
       {isLoading ? (
         <div className="flex flex-col items-center justify-center py-20">
-          <div className="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-ksi-black mb-4"></div>
-          <p className="text-slate-500">加载数据中...</p>
+          <div className="loading-spinner mb-4" style={{ width: '64px', height: '64px' }}></div>
+          <p className="text-slate-500 loading-pulse">加载数据中...</p>
         </div>
       ) : (
         <>
@@ -903,6 +1023,54 @@ export default function App() {
   const [username, setUsername] = useState('');
   const [loginPassword, setLoginPassword] = useState('');
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [showLogs, setShowLogs] = useState(false);
+  const [logs, setLogs] = useState<OperationLog[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleBackup = async () => {
+    try {
+      const result = await backupData();
+      alert(result);
+      loadLogs();
+    } catch (err: any) {
+      alert('备份失败: ' + (err.message || String(err)));
+    }
+  };
+
+  const handleRestore = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    const confirmed = window.confirm(`确定要恢复数据吗？\n\n这将覆盖当前的数据。`);
+    if (!confirmed) {
+      if (fileInputRef.current) fileInputRef.current.value = '';
+      return;
+    }
+
+    try {
+      const result = await restoreData(file);
+      alert(result);
+      loadLogs();
+      window.location.reload();
+    } catch (err: any) {
+      alert('恢复失败: ' + (err.message || String(err)));
+    }
+
+    if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const loadLogs = () => {
+    const operationLogs = getOperationLogs();
+    setLogs(operationLogs);
+  };
+
+  const handleClearLogs = () => {
+    const confirmed = window.confirm('确定要清空所有操作日志吗？');
+    if (confirmed) {
+      clearOperationLogs();
+      setLogs([]);
+    }
+  };
 
   const handleStart = async () => {
     const user = USER_ACCOUNTS.find(u => u.username === username && u.password === loginPassword);
@@ -1060,7 +1228,16 @@ export default function App() {
            </div>
 
            <div className="pt-8 pb-12 px-4 md:px-8">
-              <AdminDashboard />
+              <AdminDashboard 
+                handleBackup={handleBackup}
+                handleRestore={handleRestore}
+                fileInputRef={fileInputRef}
+                logs={logs}
+                showLogs={showLogs}
+                setShowLogs={setShowLogs}
+                loadLogs={loadLogs}
+                handleClearLogs={handleClearLogs}
+              />
            </div>
         </div>
       )}

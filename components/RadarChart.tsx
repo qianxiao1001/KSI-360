@@ -47,24 +47,24 @@ const SimpleRadar = ({
   return (
     <div className="flex flex-col h-full">
       <h4 className="text-center font-bold text-slate-700 mb-2">{title}</h4>
-      <div className="flex-1 w-full min-h-[300px]">
+      <div className="flex-1 w-full min-h-[280px] md:min-h-[300px]">
         <ResponsiveContainer width="100%" height="100%">
-          <RadarChart cx="50%" cy="50%" outerRadius="70%" data={data}>
+          <RadarChart cx="50%" cy="50%" outerRadius="55%" data={data}>
             <PolarGrid stroke="#e2e8f0" />
             <PolarAngleAxis 
               dataKey="subject" 
-              tick={{ fill: '#475569', fontSize: 10, fontWeight: 600 }} 
+              tick={{ fill: '#475569', fontSize: 7, fontWeight: 600 }}
             />
             <PolarRadiusAxis 
               angle={30} 
               domain={[0, maxDomain]} 
-              tick={{ fill: '#94a3b8', fontSize: 9 }}
+              tick={{ fill: '#94a3b8', fontSize: 8 }}
             />
             <Radar
               name="Score"
               dataKey="value"
               stroke={color}
-              strokeWidth={4}
+              strokeWidth={3}
               fill={color}
               fillOpacity={0.25}
               isAnimationActive={!disableAnimation}
@@ -79,38 +79,38 @@ const SimpleRadar = ({
 
 export const RadarView: React.FC<RadarViewProps> = ({ data, disableAnimation }) => {
   const posChartData = POSITIVE_QUESTIONS.map((q, i) => ({
-    subject: `P${i+1} ${q.split('】')[1].split('(')[0]}`, // Shorten label
-    fullLabel: q,
+    subject: q,
     value: data.avgPos[q],
     fullMark: 10,
   }));
 
   const negChartData = NEGATIVE_QUESTIONS.map((q, i) => ({
-    subject: `N${i+1} ${q.split('】')[1].split('(')[0]}`, // Shorten label
-    fullLabel: q,
+    subject: q,
     value: data.avgNeg[q],
     fullMark: 10,
   }));
 
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 gap-6 w-full">
-      <div className="bg-emerald-50/70 rounded-xl p-4 border-2 border-emerald-200">
-        <SimpleRadar 
-          title="🟢 正向价值雷达 (Avg Score)" 
-          data={posChartData} 
-          color="#10b981"
-          maxDomain={10}
-          disableAnimation={disableAnimation}
-        />
-      </div>
-      <div className="bg-rose-50/70 rounded-xl p-4 border-2 border-rose-200">
-        <SimpleRadar 
-          title="🔴 负向行为警示 (Frequency)" 
-          data={negChartData} 
-          color="#f43f5e"
-          maxDomain={10}
-          disableAnimation={disableAnimation}
-        />
+    <div className="w-full">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+        <div className="bg-emerald-50/70 rounded-xl p-3 md:p-4 border-2 border-emerald-200">
+          <SimpleRadar 
+            title="🟢 正向价值雷达" 
+            data={posChartData} 
+            color="#10b981"
+            maxDomain={10}
+            disableAnimation={disableAnimation}
+          />
+        </div>
+        <div className="bg-rose-50/70 rounded-xl p-3 md:p-4 border-2 border-rose-200">
+          <SimpleRadar 
+            title="🔴 负向行为警示" 
+            data={negChartData} 
+            color="#f43f5e"
+            maxDomain={10}
+            disableAnimation={disableAnimation}
+          />
+        </div>
       </div>
     </div>
   );

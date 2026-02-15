@@ -188,3 +188,124 @@ export const downloadCSV = async () => {
   link.click();
   document.body.removeChild(link);
 };
+
+export const backupData = async (): Promise<string> => {
+  const data = await getEvaluations();
+  const backup = {
+    version: '2.0',
+    timestamp: new Date().toISOString(),
+    count: data.length,
+    data: data
+  };
+  
+  const jsonString = JSON.stringify(backup, null, 2);
+  const blob = new Blob([jsonString], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = `ksi_backup_${new Date().toISOString().slice(0, 19).replace(/:/g, '-')}.json`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  
+  addOperationLog('backup', `备份了 ${data.length} 条评价数据`);
+  
+  return `成功备份 ${data.length} 条数据`;
+};
+
+export const restoreData = async (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    
+    reader.onload = async (e) => {
+      try {
+        const content = e.target?.result as string;
+        const backup = JSON.parse(content);
+        
+        if (!backup.version || !backup.data || !Array.isArray(backup.data)) {
+          throw new Error('无效的备份文件格式');
+        }
+        
+        await loginAnonymous();
+        const collection = db.collection(COLLECTION_NAME);
+        
+        let successCount = 0;
+        let failCount = 0;
+        
+        for (const record of backup.data) {
+          try {
+            const existRes = await collection
+              .where({
+                evaluator: record.evaluator,
+                target: record.target
+              })
+              .get();
+              
+            if (existRes.data && existRes.data.length > 0) {
+              for (const doc of existRes.data) {
+                await collection.doc(doc._id).remove();
+              }
+            }
+            
+            await collection.add({
+              ...record,
+              restoredAt: new Date().toISOString()
+            });
+            
+            successCount++;
+          } catch (err) {
+            console.error('恢复记录失败:', record, err);
+            failCount++;
+          }
+        }
+        
+        addOperationLog('restore', `恢复了 ${successCount} 条数据，失败 ${failCount} 条`);
+        
+        resolve(`成功恢复 ${successCount} 条数据${failCount > 0 ? `，失败 ${failCount} 条` : ''}`);
+      } catch (err: any) {
+        reject(new Error('恢复失败: ' + (err.message || String(err))));
+      }
+    };
+    
+    reader.onerror = () => {
+      reject(new Error('文件读取失败'));
+    };
+    
+    reader.readAsText(file);
+  });
+};
+
+export interface OperationLog {
+  action: string;
+  details: string;
+  timestamp: string;
+  user?: string;
+}
+
+const LOG_STORAGE_KEY = 'ksi_operation_logs';
+
+export const addOperationLog = (action: string, details: string, user?: string): void => {
+  const logs: OperationLog[] = JSON.parse(localStorage.getItem(LOG_STORAGE_KEY) || '[]');
+  
+  logs.unshift({
+    action,
+    details,
+    timestamp: new Date().toISOString(),
+    user
+  });
+  
+  if (logs.length > 100) {
+    logs.splice(100);
+  }
+  
+  localStorage.setItem(LOG_STORAGE_KEY, JSON.stringify(logs));
+};
+
+export const getOperationLogs = (): OperationLog[] => {
+  return JSON.parse(localStorage.getItem(LOG_STORAGE_KEY) || '[]');
+};
+
+export const clearOperationLogs = (): void => {
+  localStorage.removeItem(LOG_STORAGE_KEY);
+};
